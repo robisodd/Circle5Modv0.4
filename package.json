@@ -1,0 +1,226 @@
+{
+    "author": "robisodd",
+    "dependencies": {},
+    "keywords": [],
+    "name": "circle-5-mod",
+    "pebble": {
+        "displayName": "CIRCLE-5-MOD Remix v0.4",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "images/cursor.png",
+                    "name": "CURSOR",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/background.png",
+                    "name": "background",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/battery.png",
+                    "name": "battery",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/date.png",
+                    "name": "date",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/day.png",
+                    "name": "day",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-1.png",
+                    "name": "LARGE1",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-2.png",
+                    "name": "LARGE2",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-3.png",
+                    "name": "LARGE3",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-4.png",
+                    "name": "LARGE4",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-5.png",
+                    "name": "LARGE5",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-6.png",
+                    "name": "LARGE6",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-7.png",
+                    "name": "LARGE7",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-8.png",
+                    "name": "LARGE8",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-9.png",
+                    "name": "LARGE9",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-10.png",
+                    "name": "LARGE10",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-11.png",
+                    "name": "LARGE11",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Large-12.png",
+                    "name": "LARGE12",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Tens-0.png",
+                    "name": "TENS0",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Tens-1.png",
+                    "name": "TENS1",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Tens-2.png",
+                    "name": "TENS2",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Tens-3.png",
+                    "name": "TENS3",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Tens-4.png",
+                    "name": "TENS4",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Tens-5.png",
+                    "name": "TENS5",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-0.png",
+                    "name": "ONES0",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-1.png",
+                    "name": "ONES1",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-2.png",
+                    "name": "ONES2",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-3.png",
+                    "name": "ONES3",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-4.png",
+                    "name": "ONES4",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-5.png",
+                    "name": "ONES5",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-6.png",
+                    "name": "ONES6",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-7.png",
+                    "name": "ONES7",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-8.png",
+                    "name": "ONES8",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Circle-Ones-9.png",
+                    "name": "ONES9",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk",
+            "diorite"
+        ],
+        "uuid": "c456547f-66d2-4cf4-9d53-c0de4fc0ffee",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "0.4.0"
+}
