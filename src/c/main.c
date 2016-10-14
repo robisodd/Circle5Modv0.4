@@ -39,12 +39,7 @@ static GRect bounds;
 static GPoint center;
 
 static GBitmap *background_bitmap;
-static GBitmap *cursor_bitmap;
-// static GBitmap *large_bitmap;
-
-GColor *palette;
-
-static GBitmap *battery_bitmap, *date_bitmap, *day_bitmap;
+static GBitmap *battery_bitmap, *date_bitmap, *day_bitmap, *cursor_bitmap;
 static GBitmap *weekday_bitmap[7];
 static GBitmap *datefont_bitmap[10];
 static GBitmap *battsegs_bitmap[6];
@@ -87,6 +82,14 @@ uint32_t ONES[10] = {
   RESOURCE_ID_ONES9,
 };
 
+GColor background_color;// = GColorBlack;
+GColor dots_color;// = GColorYellow;
+GColor battery_color;// = GColorGreen;
+GColor date_color;// = GColorOrange;
+GColor day_color;// = GColorPurple;
+GColor cursor_color;// = GColorRed;
+GColor hours_color;// = GColorLightGray;
+GColor minutes_color;// = GColorCyan;
 
 //bool js_connected=false;
 bool phone_connected = true;
@@ -119,22 +122,54 @@ static void handle_tick(struct tm *tick_time, TimeUnits units_changed) {
 
 
 // Fill screen with color.  Note: For Aplite, color should be either 0 or 255. Vertical stripes will appear otherwise.
-void fill_screen(GContext *ctx, GColor color) {
-  uint32_t *framebuffer = (uint32_t*)*(uintptr_t*)ctx;
-  #if defined(PBL_PLATFORM_APLITE)
-    memset(framebuffer, color.argb, 20 * 168);
-    graphics_release_frame_buffer(ctx, graphics_capture_frame_buffer(ctx));  // Needed on Aplite to force screen to draw
+// void fill_screen(GContext *ctx, GColor color) {
+//   uint32_t *framebuffer = (uint32_t*)*(uintptr_t*)ctx;
+//   #if defined(PBL_PLATFORM_APLITE)
+//     memset(framebuffer, color.argb, 20 * 168);
+//     graphics_release_frame_buffer(ctx, graphics_capture_frame_buffer(ctx));  // Needed on Aplite to force screen to draw
   
-  // TODO: Test on Aplite with colors, might not work
+//   // TODO: Test on Aplite with colors, might not work
   
-  #elif defined(PBL_PLATFORM_BASALT)
-    memset(framebuffer, color.argb, 144 * 168);
-  #elif defined(PBL_PLATFORM_CHALK)
-    memset(framebuffer, color.argb, 76 + 25792); // First pixel on PTR doesn't start til framebuffer + 76
-  #endif
-}
+//   #elif defined(PBL_PLATFORM_BASALT)
+//     memset(framebuffer, color.argb, 144 * 168);
+//   #elif defined(PBL_PLATFORM_CHALK)
+//     memset(framebuffer, color.argb, 76 + 25792); // First pixel on PTR doesn't start til framebuffer + 76
+//   #endif
+// }
 
-static void bitmap_set_color(GBitmap *bitmap, GColor color) {
+// static void bitmap_set_color(GBitmap *bitmap, GColor color) {
+// //   gbitmap_get_palette(bitmap)[0] = (GColor){.argb=0b00111111};
+//   GColor *pal;
+//   switch (gbitmap_get_format(bitmap)) {
+//  		case GBitmapFormat1Bit:         break;
+//  		case GBitmapFormat8Bit:         break;
+//     case GBitmapFormat8BitCircular: break;
+    
+//  		case GBitmapFormat4BitPalette: 
+//       pal = gbitmap_get_palette(bitmap);
+//       pal[0] = (GColor){.argb =  0b00111111};
+//     break;
+    
+//     case GBitmapFormat1BitPalette: 
+//       pal = gbitmap_get_palette(bitmap);
+//       pal[0] = (GColor){.argb =  0b00111111};
+//       pal[1] = (GColor){.argb = (0b11000000 | (color.argb&63))};
+//     break;
+    
+// 		case GBitmapFormat2BitPalette:
+//       pal = gbitmap_get_palette(bitmap);
+//       pal[0] = (GColor){.argb =  0b00111111};
+//       pal[1] = (GColor){.argb = (0b01111111 | (color.argb&63))};
+//       pal[2] = (GColor){.argb = (0b10111111 | (color.argb&63))};
+//       pal[3] = (GColor){.argb = (0b11111111 | (color.argb&63))};
+//     break;
+    
+//     default:
+//     break;
+//   }
+// }
+
+static void bitmap_set_argb(GBitmap *bitmap, GColor color) {
 //   gbitmap_get_palette(bitmap)[0] = (GColor){.argb=0b00111111};
   GColor *pal;
   switch (gbitmap_get_format(bitmap)) {
@@ -144,21 +179,23 @@ static void bitmap_set_color(GBitmap *bitmap, GColor color) {
     
  		case GBitmapFormat4BitPalette: 
       pal = gbitmap_get_palette(bitmap);
-      pal[0] = (GColor){.argb =  0b00111111};
+      pal[0] = GColorClear;
     break;
     
     case GBitmapFormat1BitPalette: 
       pal = gbitmap_get_palette(bitmap);
-      pal[0] = (GColor){.argb =  0b00111111};
-      pal[1] = (GColor){.argb = (0b11000000 | (color.argb&63))};
+      pal[0] = GColorClear;
+      pal[1] = color;
     break;
     
 		case GBitmapFormat2BitPalette:
       pal = gbitmap_get_palette(bitmap);
-      pal[0] = (GColor){.argb =  0b00111111};
-      pal[1] = (GColor){.argb = (0b01111111 | (color.argb&63))};
-      pal[2] = (GColor){.argb = (0b10111111 | (color.argb&63))};
-      pal[3] = (GColor){.argb = (0b11111111 | (color.argb&63))};
+      pal[3] = color;
+      if(color.argb >63) color.argb -= 0b01000000;
+      pal[2] = color;
+      if(color.argb >63) color.argb -= 0b01000000;
+      pal[1] = color;
+      pal[0] = GColorClear;
     break;
     
     default:
@@ -167,22 +204,29 @@ static void bitmap_set_color(GBitmap *bitmap, GColor color) {
 }
 
 
+void draw_bitmap(GContext *ctx, GBitmap *bmp, GColor color, int16_t shadow_distance) {
+  // Shadow
+  if(shadow_distance>0 && color.argb > 127) {
+    bitmap_set_argb(bmp, (GColor){.argb = color.argb - 128});
+    graphics_draw_bitmap_in_rect(ctx, bmp, GRect(center.x + shadow_distance + 33 - (size.w / 2), center.y + shadow_distance - (size.h / 2), size.w, size.h));
+  }
 
-void draw_resource(GContext *ctx, uint32_t resource) {
-  GBitmap *bitmap = gbitmap_create_with_resource(resource);
-//   GColor     *pal = gbitmap_get_palette(bitmap);
-  GSize      size = gbitmap_get_bounds(bitmap).size;
-  bitmap_set_color(bitmap, GColorWhite);
+  // Actual Image
+  //bitmap_set_color(bmp, color);
+  bitmap_set_argb(bmp, color);
+  graphics_draw_bitmap_in_rect(ctx, bmp, GRect(center.x + 33 - (size.w / 2), center.y - (size.h / 2), size.w, size.h));
+}
+
+
+void draw_resource(GContext *ctx, uint32_t resource, GColor color, int16_t shadow_distance) {
+  // Create
+  GBitmap *bmp = gbitmap_create_with_resource(resource);
+  GSize   size = gbitmap_get_bounds(bmp).size;
   
-//   pal[0] = (GColor){.argb=0b00111111};
-//   #if defined(PBL_COLOR)
-//   pal[1] = (GColor){.argb=0b01111111};
-//   pal[2] = (GColor){.argb=0b10111111};
-//   pal[3] = (GColor){.argb=0b11111111};
-//   #endif
+  draw_bitmap(ctx, bmp, color, shadow_distance);
   
-  graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(center.x + 33 - (size.w / 2), center.y - (size.h / 2), size.w, size.h));
-  gbitmap_destroy(bitmap);
+  // Destroy
+  gbitmap_destroy(bmp);
 }
 
 static void root_layer_update(Layer *layer, GContext *ctx) {
@@ -194,11 +238,11 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
   //seconds = now;
   int n = now;
   
-  graphics_context_set_antialiased(ctx, true);
-  graphics_context_set_stroke_width(ctx, 1);
+//   graphics_context_set_antialiased(ctx, true);
+//   graphics_context_set_stroke_width(ctx, 1);
   
-  graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_fill_color(ctx, GColorWhite);
+//   graphics_context_set_stroke_color(ctx, GColorWhite);
+//   graphics_context_set_fill_color(ctx, GColorWhite);
 
   
   //fill_screen(ctx, GColorDukeBlue);
@@ -217,7 +261,7 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
   // -----------------
   n = ((now)%12)+1;
   //n = (local->tm_hour + 12) % 12;
-  draw_resource(ctx, HOURS[n]);
+  draw_resource(ctx, HOURS[n], hours_color, 2);
   
   // -----------------
   // Left Triangle
@@ -230,7 +274,7 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
   n = now%6;
   //n = (local->tm_min)/10;
   //n = 5;
-  draw_resource(ctx, TENS[n]);
+  draw_resource(ctx, TENS[n], minutes_color, 1);
   
   // -----------------
   //  Minutes ONES digits
@@ -238,20 +282,27 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
   n = now%10;
   //n = 8;
   //n = (local->tm_min%10);
-  draw_resource(ctx, ONES[n]);
+  draw_resource(ctx, ONES[n], minutes_color, 1);
   
   // -----------------
   //  2-Letter Weekday
   // -----------------
   int wd = ((local->tm_wday) % 7); // %7 just in case
-  graphics_draw_bitmap_in_rect(ctx, weekday_bitmap[wd], GRect(x + 25, y + 6, 16, 7));
+  graphics_draw_bitmap_in_rect(ctx, weekday_bitmap[wd], GRect(center.x + 25, center.y + 6, 16, 7));
+  
+  
+  
+  
+  
+  
+  
   
   // -----------------
   //  2-Digit Date
   // -----------------
   int mday = ((local->tm_mday) % 99); // %99 just in case
-  graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday/10], GRect(x + 19, y - 10, 13, 13));
-  graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday%10], GRect(x + 34, y - 10, 13, 13));
+  graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday/10], GRect(center.x + 19, center.y - 10, 13, 13));
+  graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday%10], GRect(center.x + 34, center.y - 10, 13, 13));
 
   // -----------------
   //  Battery Graph
@@ -267,184 +318,6 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
     GRect bb = gbitmap_get_bounds(battsegs_bitmap[batt]);
     graphics_draw_bitmap_in_rect(ctx, battsegs_bitmap[batt], GRect(x + 36, y - 23 + (46 - bb.size.h), bb.size.w, bb.size.h));
 }
-
-// static void root_layer_update(Layer *layer, GContext *ctx) {
-//   int x = center.x; int y = center.y;
-  
-//   time_t now = time(NULL);  // now = number of seconds since 00:00:00 UTC, Jan 1, 1970
-//   struct tm *local = localtime(&now);  // Current Watch Time
-//   //int seconds = local->tm_sec;
-//   //seconds = now;
-//   int n = now;
-  
-//   graphics_context_set_antialiased(ctx, true);
-//   graphics_context_set_stroke_width(ctx, 1);
-  
-//   graphics_context_set_stroke_color(ctx, GColorWhite);
-//   graphics_context_set_fill_color(ctx, GColorWhite);
-
-  
-//   fill_screen(ctx, GColorDukeBlue);
-  
-//   graphics_context_set_compositing_mode(ctx, GCompOpSet);
-
-//   // -----------------
-//   // Background
-//   // -----------------
-//   graphics_draw_bitmap_in_rect(ctx, background_bitmap, GRect(center.x - (144 / 2), center.y - (168 / 2), 144, 168));
-
-  
-    
-//   // -----------------
-//   //  Hour digits
-//   // -----------------
-//   n = ((now)%12)+1;
-//   //n = (local->tm_hour + 12) % 12;
-
-//   switch(n){
-//     case 1: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE1); break;
-//     case 2: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE2); break;
-//     case 3: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE3); break;
-//     case 4: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE4); break;
-//     case 5: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE5); break;
-//     case 6: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE6); break;
-//     case 7: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE7); break;
-//     case 8: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE8); break;
-//     case 9: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE9); break;
-//     case 10: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE10); break;
-//     case 11: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE11); break;
-//     case 12: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_LARGE12); break;
-//   }
-// //   printf("Hour Format: %s", get_gbitmapformat_text(gbitmap_get_format(large_bitmap)));
-  
-//   palette = gbitmap_get_palette(large_bitmap);
-//   palette[0] = (GColor){.argb=0b00111111};
-//   #if defined(PBL_COLOR)
-//   palette[1] = (GColor){.argb=0b01111111};
-//   palette[2] = (GColor){.argb=0b10111111};
-//   palette[3] = (GColor){.argb=0b11111111};
-//   #endif
-
-//   //graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(6, -15, 198, 198));  // HOURS Perfect on Basalt
-//   //graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(24, -9, 198, 198));  // Perfect on Chalk
-  
-//   //graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(center.x - 66, center.y - (198 / 2), 198, 198));
-//   graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(center.x + 33 - (198 / 2), center.y - (198 / 2), 198, 198));
-
-  
-//   gbitmap_destroy(large_bitmap);
-  
-//   // -----------------
-//   // Left Triangle
-//   // -----------------
-//   graphics_draw_bitmap_in_rect(ctx, cursor_bitmap, GRect(center.x - 72, center.y - (10 / 2), 8, 10));
-  
-// //   graphics_context_set_antialiased(ctx, false);
-// //   graphics_context_set_stroke_width(ctx, 1);
-// //   graphics_context_set_stroke_color(ctx, GColorWhite);
-// //   graphics_context_set_fill_color(ctx, GColorWhite);
-// //   //gpath_rotate_to(gp_triangle, TRIG_MAX_ANGLE * t->tm_min / 60);
-// //   gpath_draw_filled(ctx, gp_triangle);
-// //   gpath_draw_outline(ctx, gp_triangle);
-
-  
-//   // -----------------
-//   //  Minute Tens digits
-//   // -----------------
-//   n = now%6;
-//   //n = (local->tm_min)/10;
-//   //n = 5;
-
-//   switch(n){
-//     case 0: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TENS0); break;
-//     case 1: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TENS1); break;
-//     case 2: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TENS2); break;
-//     case 3: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TENS3); break;
-//     case 4: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TENS4); break;
-//     case 5: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TENS5); break;
-//   }
-// //   printf("Tens Format: %s", get_gbitmapformat_text(gbitmap_get_format(large_bitmap)));
-  
-//   palette = gbitmap_get_palette(large_bitmap);
-//   palette[0] = (GColor){.argb=0b00111111};
-//   #if defined(PBL_COLOR)
-//   palette[1] = (GColor){.argb=0b01111111};
-//   palette[2] = (GColor){.argb=0b10111111};
-//   palette[3] = (GColor){.argb=0b11111111};
-//   #endif
-
-// //   graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(50, 29, 110, 110));  // basalt tens
-//   //graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(24, -9, 198, 198));  // HOURS Perfect on Chalk
-  
-//   graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(center.x + 33 - (110 / 2), center.y - (110 / 2), 110, 110));
-  
-//   gbitmap_destroy(large_bitmap);
-  
-  
-  
-  
-//    // -----------------
-//   //  Minutes ONES digits
-//   // -----------------
-//   n = now%10;
-//   //n = 8;
-//   //n = (local->tm_min%10);
-// //   n = 6;
-
-//   switch(n){
-//     case 0: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES0); break;
-//     case 1: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES1); break;
-//     case 2: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES2); break;
-//     case 3: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES3); break;
-//     case 4: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES4); break;
-//     case 5: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES5); break;
-//     case 6: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES6); break;
-//     case 7: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES7); break;
-//     case 8: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES8); break;
-//     case 9: large_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ONES9); break;
-//   }
-// //   printf("Ones Format: %s", get_gbitmapformat_text(gbitmap_get_format(large_bitmap)));
-  
-//   palette = gbitmap_get_palette(large_bitmap);
-//   palette[0] = (GColor){.argb=0b00111111};
-//   #if defined(PBL_COLOR)
-//   palette[1] = (GColor){.argb=0b01111111};
-//   palette[2] = (GColor){.argb=0b10111111};
-//   palette[3] = (GColor){.argb=0b11111111};
-//   #endif
-
-//   //graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(60, 39, 90, 90));  // One BASALT
-//   //graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(24, -9, 198, 198));  // HOURS Perfect on Chalk
-  
-//   graphics_draw_bitmap_in_rect(ctx, large_bitmap, GRect(center.x + 33 - (90 / 2), center.y - (90 / 2), 90, 90));
-  
-//   gbitmap_destroy(large_bitmap);
-  
-  
-    
-    
-  
-  
-//   int wd = ((local->tm_wday) % 7); // %7 just in case
-//   graphics_draw_bitmap_in_rect(ctx, weekday_bitmap[wd], GRect(x + 25, y + 6, 16, 7));
-  
-//   int mday = ((local->tm_mday) % 99); // %99 just in case
-//   graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday/10], GRect(x + 19, y - 10, 13, 13));
-//   graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday%10], GRect(x + 34, y - 10, 13, 13));
-
-//   graphics_context_set_compositing_mode(ctx, GCompOpOr);
-//   uint8_t batt = 5;
-//   if (watch_battery.charge_percent >= 90) batt = 0;
-//   else if (watch_battery.charge_percent >= 70) batt = 1;
-//   else if (watch_battery.charge_percent >= 50) batt = 2;
-//   else if (watch_battery.charge_percent >= 30) batt = 3;
-//   else if (watch_battery.charge_percent >= 20) batt = 4;
-//   else batt = 5;
-    
-//     GRect bb = gbitmap_get_bounds(battsegs_bitmap[batt]);
-//     graphics_draw_bitmap_in_rect(ctx, battsegs_bitmap[batt], GRect(x + 36, y - 23 + (46 - bb.size.h), bb.size.w, bb.size.h));
-// }
-
 
 
 void battery_handler(BatteryChargeState charge_state) {
@@ -481,20 +354,30 @@ void bluetooth_handler(bool connected) {
 //  Main Functions
 // ------------------------------------------------------------------------ //
 static void main_window_load(Window *window) {
-//   Layer *window_layer = window_get_root_layer(window);
-//   GRect window_frame = layer_get_frame(window_layer);
-
   root_layer = window_get_root_layer(window);
+  bounds = layer_get_bounds(root_layer);
+  center = grect_center_point(&bounds);
+
+  // IDEA: GRAY CHECKERBOARD BACKGROUND FOR APLTIE
+//   layer_set_update_proc(root_layer, root_layer_update);
+  graphics_layer = layer_create(layer_get_frame(root_layer));
+  layer_set_update_proc(graphics_layer, root_layer_update);
+  layer_add_child(root_layer, graphics_layer);
+  window_set_background_color(main_window, background_color);
+
   
+  // -----------------
+  //  Load Images
+  // -----------------
   background_bitmap = gbitmap_create_with_resource(RESOURCE_ID_background);
      battery_bitmap = gbitmap_create_with_resource(RESOURCE_ID_battery);
         date_bitmap = gbitmap_create_with_resource(RESOURCE_ID_date);
          day_bitmap = gbitmap_create_with_resource(RESOURCE_ID_day);
   
-  bitmap_set_color(background_bitmap, GColorWhite);
-  bitmap_set_color(battery_bitmap, GColorWhite);
-  bitmap_set_color(date_bitmap, GColorWhite);
-  bitmap_set_color(day_bitmap, GColorWhite);
+  bitmap_set_color(background_bitmap, dots_color);
+  bitmap_set_color(battery_bitmap, battery_color);
+  bitmap_set_color(date_bitmap, date_color);
+  bitmap_set_color(day_bitmap, day_color);
   
   for (int i = 0; i < 7; ++i)
     weekday_bitmap[i] = gbitmap_create_as_sub_bitmap(day_bitmap, GRect(i*16, 0, 16, 7));
@@ -512,33 +395,27 @@ static void main_window_load(Window *window) {
   
   
   cursor_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CURSOR);
-  bitmap_set_color(cursor_bitmap, GColorRed);
-//   palette = gbitmap_get_palette(cursor_bitmap);
-//   palette[0] = (GColor){.argb=0b00111111};
-   
-  
-  
-  // IDEA: GRAY CHECKERBOARD BACKGROUND FOR APLTIE
-//   layer_set_update_proc(root_layer, root_layer_update);
-  graphics_layer = layer_create(layer_get_frame(root_layer));
-  layer_set_update_proc(graphics_layer, root_layer_update);
-  layer_add_child(root_layer, graphics_layer);
-  window_set_background_color(main_window, GColorLightGray);
-  window_set_background_color(main_window, GColorDukeBlue);
-  
-  
-  bounds = layer_get_bounds(root_layer);
-  center = grect_center_point(&bounds);
-
+  bitmap_set_color(cursor_bitmap, cursor_color);
 }
 
 static void main_window_unload(Window *window) {
-//   layer_destroy(graphics_layer);
+   layer_destroy(root_layer);
 }
 
+static void init_colors() {
+ background_color = GColorBlack;
+ dots_color = GColorYellow;
+ battery_color = GColorGreen;
+ date_color = GColorOrange;
+ day_color = GColorPurple;
+ cursor_color = GColorRed;
+ hours_color = GColorBlue;
+ minutes_color = GColorCyan;
+}
 
 static void init(void) {
-//   init_digits();
+  init_colors();
+  
   // Set up and push main window
   main_window = window_create();
   window_set_window_handlers(main_window, (WindowHandlers) {
@@ -550,20 +427,12 @@ static void init(void) {
 //   tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
   tick_timer_service_subscribe(SECOND_UNIT, handle_tick);
 
-//   bool emulator = watch_info_get_model()==WATCH_INFO_MODEL_UNKNOWN;
-//   if(emulator) {
-//     printf("Emulator Detected: Turning Backlight On");
-//     light_enable(true);
-//   }
-//   Had a user complain their backlight stayed on!
-  
   //-----------------------------------------------------------------
   // Subscribe to Battery and Bluetooth and check current status
   //-----------------------------------------------------------------
   battery_state_service_subscribe(battery_handler);
   battery_handler(battery_state_service_peek());
 
-  //bluetooth_connection_service_subscribe(bluetooth_handler);
   connection_service_subscribe((ConnectionHandlers){bluetooth_handler, bluetooth_handler});
   bluetooth_handler(connection_service_peek_pebble_app_connection());
   
