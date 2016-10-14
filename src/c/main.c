@@ -204,34 +204,34 @@ static void bitmap_set_argb(GBitmap *bitmap, GColor color) {
 }
 
 
-void draw_bitmap(GContext *ctx, GBitmap *bmp, GColor color, int16_t shadow_distance) {
+void draw_bitmap(GContext *ctx, GBitmap *bmp, GColor color, int16_t shadow_distance, int16_t x_offset, int16_t y_offset) {
+  GSize   size = gbitmap_get_bounds(bmp).size;
+
   // Shadow
   if(shadow_distance>0 && color.argb > 127) {
     bitmap_set_argb(bmp, (GColor){.argb = color.argb - 128});
-    graphics_draw_bitmap_in_rect(ctx, bmp, GRect(center.x + shadow_distance + 33 - (size.w / 2), center.y + shadow_distance - (size.h / 2), size.w, size.h));
+    graphics_draw_bitmap_in_rect(ctx, bmp, GRect(center.x + x_offset + shadow_distance + 33 - (size.w / 2), center.y + y_offset + shadow_distance - (size.h / 2), size.w, size.h));
   }
 
   // Actual Image
   //bitmap_set_color(bmp, color);
   bitmap_set_argb(bmp, color);
-  graphics_draw_bitmap_in_rect(ctx, bmp, GRect(center.x + 33 - (size.w / 2), center.y - (size.h / 2), size.w, size.h));
+  graphics_draw_bitmap_in_rect(ctx, bmp, GRect(center.x + x_offset + 33 - (size.w / 2), center.y + y_offset - (size.h / 2), size.w, size.h));
 }
 
 
 void draw_resource(GContext *ctx, uint32_t resource, GColor color, int16_t shadow_distance) {
   // Create
   GBitmap *bmp = gbitmap_create_with_resource(resource);
-  GSize   size = gbitmap_get_bounds(bmp).size;
   
-  draw_bitmap(ctx, bmp, color, shadow_distance);
+  // Draw
+  draw_bitmap(ctx, bmp, color, shadow_distance, 0, 0);
   
   // Destroy
   gbitmap_destroy(bmp);
 }
 
 static void root_layer_update(Layer *layer, GContext *ctx) {
-  int x = center.x; int y = center.y;
-  
   time_t now = time(NULL);  // now = number of seconds since 00:00:00 UTC, Jan 1, 1970
   struct tm *local = localtime(&now);  // Current Watch Time
   //int seconds = local->tm_sec;
@@ -266,7 +266,8 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
   // -----------------
   // Left Triangle
   // -----------------
-  graphics_draw_bitmap_in_rect(ctx, cursor_bitmap, GRect(center.x - 72, center.y - (10 / 2), 8, 10));
+  if (phone_connected)
+    graphics_draw_bitmap_in_rect(ctx, cursor_bitmap, GRect(center.x - 72, center.y - (10 / 2), 8, 10));
   
   // -----------------
   //  Minute Tens digits
@@ -288,21 +289,18 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
   //  2-Letter Weekday
   // -----------------
   int wd = ((local->tm_wday) % 7); // %7 just in case
-  graphics_draw_bitmap_in_rect(ctx, weekday_bitmap[wd], GRect(center.x + 25, center.y + 6, 16, 7));
+  //graphics_draw_bitmap_in_rect(ctx, weekday_bitmap[wd], GRect(center.x + 25, center.y + 6, 16, 7));
+  draw_bitmap(ctx, weekday_bitmap[wd], day_color, 1, 0, 9);
   
-  
-  
-  
-  
-  
-  
-  
+    
   // -----------------
   //  2-Digit Date
   // -----------------
   int mday = ((local->tm_mday) % 99); // %99 just in case
-  graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday/10], GRect(center.x + 19, center.y - 10, 13, 13));
-  graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday%10], GRect(center.x + 34, center.y - 10, 13, 13));
+//   graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday/10], GRect(center.x + 19, center.y - 10, 13, 13));
+//   graphics_draw_bitmap_in_rect(ctx, datefont_bitmap[mday%10], GRect(center.x + 34, center.y - 10, 13, 13));
+  draw_bitmap(ctx, datefont_bitmap[mday/10], date_color, 1, -8, -4);
+  draw_bitmap(ctx, datefont_bitmap[mday%10], date_color, 1, 7, -4);
 
   // -----------------
   //  Battery Graph
@@ -316,7 +314,7 @@ static void root_layer_update(Layer *layer, GContext *ctx) {
   else batt = 5;
     
     GRect bb = gbitmap_get_bounds(battsegs_bitmap[batt]);
-    graphics_draw_bitmap_in_rect(ctx, battsegs_bitmap[batt], GRect(x + 36, y - 23 + (46 - bb.size.h), bb.size.w, bb.size.h));
+    graphics_draw_bitmap_in_rect(ctx, battsegs_bitmap[batt], GRect(center.x + 36, center.y - 23 + (46 - bb.size.h), bb.size.w, bb.size.h));
 }
 
 
@@ -357,6 +355,9 @@ static void main_window_load(Window *window) {
   root_layer = window_get_root_layer(window);
   bounds = layer_get_bounds(root_layer);
   center = grect_center_point(&bounds);
+  #if defined(PBL_PLATFORM_CHALK)
+  center.x += 7;
+  #endif
 
   // IDEA: GRAY CHECKERBOARD BACKGROUND FOR APLTIE
 //   layer_set_update_proc(root_layer, root_layer_update);
@@ -374,10 +375,10 @@ static void main_window_load(Window *window) {
         date_bitmap = gbitmap_create_with_resource(RESOURCE_ID_date);
          day_bitmap = gbitmap_create_with_resource(RESOURCE_ID_day);
   
-  bitmap_set_color(background_bitmap, dots_color);
-  bitmap_set_color(battery_bitmap, battery_color);
-  bitmap_set_color(date_bitmap, date_color);
-  bitmap_set_color(day_bitmap, day_color);
+  bitmap_set_argb(background_bitmap, dots_color);
+  bitmap_set_argb(battery_bitmap, battery_color);
+  bitmap_set_argb(date_bitmap, date_color);
+  bitmap_set_argb(day_bitmap, day_color);
   
   for (int i = 0; i < 7; ++i)
     weekday_bitmap[i] = gbitmap_create_as_sub_bitmap(day_bitmap, GRect(i*16, 0, 16, 7));
@@ -395,7 +396,7 @@ static void main_window_load(Window *window) {
   
   
   cursor_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CURSOR);
-  bitmap_set_color(cursor_bitmap, cursor_color);
+  bitmap_set_argb(cursor_bitmap, cursor_color);
 }
 
 static void main_window_unload(Window *window) {
@@ -403,14 +404,22 @@ static void main_window_unload(Window *window) {
 }
 
 static void init_colors() {
- background_color = GColorBlack;
- dots_color = GColorYellow;
- battery_color = GColorGreen;
- date_color = GColorOrange;
- day_color = GColorPurple;
- cursor_color = GColorRed;
- hours_color = GColorBlue;
- minutes_color = GColorCyan;
+//  background_color = GColorBlack;
+//  dots_color = GColorYellow;
+//  battery_color = GColorGreen;
+//  date_color = GColorOrange;
+//  day_color = GColorPurple;
+//  cursor_color = GColorRed;
+//  hours_color = GColorBlue;
+//  minutes_color = GColorCyan;
+  background_color = GColorWhite;
+ dots_color = GColorBlack;
+ battery_color = GColorBlack;
+ date_color = GColorBlack;
+ day_color = GColorBlack;
+ cursor_color = GColorBlack;
+ hours_color = GColorBlack;
+ minutes_color = GColorBlack;
 }
 
 static void init(void) {
