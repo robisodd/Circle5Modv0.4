@@ -1,10 +1,15 @@
 {
     "author": "robisodd",
-    "dependencies": {},
+    "dependencies": {
+        "pebble-clay": "^1.0.2"
+    },
     "keywords": [],
     "name": "circle-5-mod",
     "pebble": {
-        "displayName": "CIRCLE-5-MOD Remix v0.4",
+        "capabilities": [
+            "configurable"
+        ],
+        "displayName": "Circle 5 MOD - Remix v0.4",
         "enableMultiJS": true,
         "messageKeys": [],
         "projectType": "native",
