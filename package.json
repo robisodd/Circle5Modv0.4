@@ -9,12 +9,19 @@
         "capabilities": [
             "configurable"
         ],
-        "displayName": "Circle 5 MOD - Remix v0.4",
+        "displayName": "Circle 5 MOD - Remix v2.0",
         "enableMultiJS": true,
         "messageKeys": [],
         "projectType": "native",
         "resources": {
             "media": [
+                {
+                    "file": "images/menu_icon_v1.png",
+                    "menuIcon": true,
+                    "name": "ICON",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
                 {
                     "file": "images/cursor.png",
                     "name": "CURSOR",
@@ -227,5 +234,5 @@
             "watchface": true
         }
     },
-    "version": "0.4.0"
+    "version": "2.0.0"
 }

@@ -53,13 +53,13 @@ Default Colors Dropdown:
  cursor_color
  battery_color
  date_color
-   Date Shadow
+   Date Shadow Distance [0 - 4]
  day_color
-   Day Shadow
+   Day Shadow Distance [0 - 4]
  hours_color
-   Hours Shadow
+   Hours Shadow Distance [0 - 4]
  minutes_color
-   Minutes Shadow
+   Minutes Shadow Distance [0 - 4]
 
 
 [Display Options]
@@ -96,7 +96,6 @@ Clay Ideas:
 // ========================================================================================================================= //
 //  Globals and Defines
 // ========================================================================================================================= //
-static Window *main_window    = NULL;
 static Layer  *graphics_layer = NULL;
 static GPoint center;
 
@@ -224,10 +223,10 @@ static void bitmap_set_color(GBitmap *bitmap, GColor color) {
 
 
 static void draw_bitmap(GContext *ctx, GBitmap *bmp, GColor color, int16_t shadow_distance, int16_t x_offset, int16_t y_offset) {
-  GSize   size = gbitmap_get_bounds(bmp).size;
+  GSize size = gbitmap_get_bounds(bmp).size;
   
   // Shadow
-  if(shadow_distance>0 && color.argb > 127) {
+  if (shadow_distance > 0 && color.argb > 127) {
     bitmap_set_color(bmp, PBL_IF_COLOR_ELSE((GColor){.argb = color.argb - 128}, GColorLightGray));
     graphics_draw_bitmap_in_rect(ctx, bmp, GRect(center.x + x_offset + shadow_distance + 33 - (size.w / 2), center.y + y_offset + shadow_distance - (size.h / 2), size.w, size.h));
   }
@@ -458,13 +457,31 @@ static void init_colors() {
  cursor_color = GColorWhite;
  hours_color = GColorWhite;
  minutes_color = GColorWhite;
+  
+     date_shadow_distance = PBL_IF_BW_ELSE(0, 1);
+      day_shadow_distance = PBL_IF_BW_ELSE(0, 1);
+  minutes_shadow_distance = PBL_IF_BW_ELSE(0, 1);
+    hours_shadow_distance = PBL_IF_BW_ELSE(0, 2);
 }
 
 
 // -----------------------------------------------------------------
 
 
-static void main_window_load(Window *window) {
+static void window_load(Window *window) {
+  // -------------------------------------
+  // Subscribe to Battery, Bluetooth and Tick Services
+  // -------------------------------------
+  tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
+  //tick_timer_service_subscribe(SECOND_UNIT, handle_tick);
+
+  battery_state_service_subscribe(battery_handler);
+  battery_handler(battery_state_service_peek());
+
+  connection_service_subscribe((ConnectionHandlers){bluetooth_handler, bluetooth_handler});
+  bluetooth_handler(connection_service_peek_pebble_app_connection());
+  
+  
   // -------------------------------------
   //  Load Images
   // -------------------------------------
@@ -476,7 +493,7 @@ static void main_window_load(Window *window) {
   
   
   // -------------------------------------
-  //  Fix Colors on Images
+  //  Assign Colors to Images
   // -------------------------------------
   //TODO: Some of these are unnecessary as they are redone during layer update
   init_colors();
@@ -491,14 +508,14 @@ static void main_window_load(Window *window) {
   // Isolate 2-letter weekday bitmaps
   // -------------------------------------
   for (int i = 0; i < 7; ++i)
-    weekday_bitmap[i] = gbitmap_create_as_sub_bitmap(day_bitmap, GRect(i*16, 0, 16, 7));
+    weekday_bitmap[i] = gbitmap_create_as_sub_bitmap(day_bitmap, GRect(i * 16, 0, 16, 7));
   
   
   // -------------------------------------
   // Isolate Date Digits
   // -------------------------------------
   for (int i = 0; i < 10; ++i)
-    datefont_bitmap[i] = gbitmap_create_as_sub_bitmap(date_bitmap, GRect(i*13, 0, 13, 13));
+    datefont_bitmap[i] = gbitmap_create_as_sub_bitmap(date_bitmap, GRect(i * 13, 0, 13, 13));
   
   
   // -------------------------------------
@@ -513,7 +530,8 @@ static void main_window_load(Window *window) {
   
   
   // -------------------------------------
-  // Set up drawing layer (Leave root layer for option of gray on B&W)
+  // Create and Setup Drawing Layer
+  // Note: Leave root layer for option of "gray checkerboard" background on B&W
   // -------------------------------------
   Layer *root_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root_layer);
@@ -529,55 +547,17 @@ static void main_window_load(Window *window) {
   layer_add_child(root_layer, graphics_layer);
   
   window_set_background_color(window, background_color);
-
 }
 
 
 // -----------------------------------------------------------------
 
 
-static void main_window_unload(Window *window) {
-  layer_destroy(graphics_layer);
+static void window_unload(Window *window) {
   tick_timer_service_unsubscribe();
   bluetooth_connection_service_unsubscribe();
   battery_state_service_unsubscribe();
-}
-
-
-// -----------------------------------------------------------------
-
-
-static void init(void) {
-  // -------------------------------------
-  // Set up and push main window
-  // -------------------------------------
-  main_window = window_create();
-  window_set_window_handlers(main_window, (WindowHandlers) {
-    .load = main_window_load,
-    .unload = main_window_unload
-  });
-  window_set_background_color(main_window, GColorBlack);
-  window_stack_push(main_window, true /* Animated */); // Display window  
-  
-  // -------------------------------------
-  // Subscribe to Battery, Bluetooth and Tick Services
-  // -------------------------------------
-  tick_timer_service_subscribe(MINUTE_UNIT, handle_tick);
-//   tick_timer_service_subscribe(SECOND_UNIT, handle_tick);
-
-  battery_state_service_subscribe(battery_handler);
-  battery_handler(battery_state_service_peek());
-
-  connection_service_subscribe((ConnectionHandlers){bluetooth_handler, bluetooth_handler});
-  bluetooth_handler(connection_service_peek_pebble_app_connection());
-}
-
-
-// -----------------------------------------------------------------
-
-
-static void deinit(void) {
-  window_destroy(main_window);
+  layer_destroy(graphics_layer);
 }
 
 
@@ -585,7 +565,23 @@ static void deinit(void) {
 
 
 int main(void) {
-  init();
+  // -------------------------------------
+  // Init: Set up and push main window
+  // -------------------------------------
+  Window *window = window_create();
+  window_set_window_handlers(window, (WindowHandlers) {
+    .load = window_load,
+    .unload = window_unload
+  });
+  window_stack_push(window, true /* Animated */);
+
+  // -------------------------------------
+  // Begin Program
+  // -------------------------------------
   app_event_loop();
-  deinit();
+  
+  // -------------------------------------
+  // Deinit: Destroy main window
+  // -------------------------------------
+  window_destroy(window);
 }
